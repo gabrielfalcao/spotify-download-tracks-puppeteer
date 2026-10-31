@@ -58,24 +58,47 @@ async function downloadTrack(browser: Puppeteer, url: string) {
 
   await page.goto("https://spotsaver.net", {
     timeout: 60000,
-    waitUntil: "domcontentloaded",
+    // waitUntil: "domcontentloaded",
+    waitUntil: "networkidle2",
   });
 
   await page.locator('input[type="text"]').fill(url);
 
   const searchButton = await page.$('button[type="submit"]');
   await searchButton.click();
-  const btn = await page.locator(`//contains(@class, "items-container")//button/span[contains(text(), "Convert")]/ancestor::button`)
-  btn.click()
-  // const convertButtons = Array.from(buttons)
-  //   .filter((el) => `${el.text}`.includes("Convert"))
-  //   .map((el) => el.parent);
-  // console.log(convertButtons);
-  // if (convertButtons.length === 0) {
-  //   throw new Error(`no convert button found`);
-  // }
-  // const convertButton = convertButtons.pop(0);
-  // await convertButton.click();
+  await page.evaluate(() => {
+    setTimeout(() => {
+      Array.from(document.querySelectorAll("div.items-center button"))
+        .filter((el) => el.textContent.includes("Convert"))
+        .pop(0)
+        .click();
+    }, 1500);
+  });
+  await closeAdPages(browser);
+  await page.evaluate(() => {
+    await new Promise((resolve, reject) => {
+      setTimeout(() => {
+        const button = Array.from(
+          document.querySelectorAll("div.items-center button"),
+        )
+          .filter((el) => el.textContent.includes("Download"))
+          .pop(0);
+        button.click();
+        resolve(button);
+      }, 1500);
+    });
+  });
+
+  await closeAdPages(browser);
+}
+async function closeAdPages(browser: Puppeteer) {
+  const pages = await browser.pages();
+  for (const page of pages) {
+    const currentUrl = page.url();
+    if (!currentUrl.includes("spotsaver.net")) {
+      await page.close();
+    }
+  }
 }
 async function initialize(): Puppeteer {
   const response = await fetch("http://localhost:9333/json/version");
