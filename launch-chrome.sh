@@ -76,7 +76,7 @@ fi
 
 if [ ${#running_instances[@]} -gt 0 ]; then
     if [ ${#valid_instances[@]} -gt 0 ]; then
-        1>&2 echo "chrome already running with remove debugging"
+        1>&2 echo "chrome already running with remote debugging"
         exit 0
     else
         1>&2 echo "chrome running without debugging, kill it first"

@@ -4,6 +4,7 @@
     "jsr:@std/assert@1": "1.0.19",
     "jsr:@std/internal@^1.0.12": "1.0.14",
     "npm:@types/node@^26.6.6": "26.6.6",
+    "npm:@types/puppeteer@^7.0.4": "7.0.4",
     "npm:puppeteer@^25.16.0": "25.16.0"
   },
   "jsr": {
@@ -31,6 +32,13 @@
       "dependencies": [
         "undici-types"
       ]
+    },
+    "@types/puppeteer@7.0.4": {
+      "integrity": "sha512-ja78vquZc8y+GM2al07GZqWDKQskQXygCDiu0e3uO0DMRKqE0MjrFBFmTulfPYzLB6WnL7Kl2tFPy0WXSpPomg==",
+      "dependencies": [
+        "puppeteer"
+      ],
+      "deprecated": true
     },
     "ansi-regex@6.5.0": {
       "integrity": "sha512-zhvbbbdt1kbw7EJ9OQoxmQcuaNR9P5kTj7e/YdmOSU10aHWbycofJxA6jKfoEy3vlLdctOF9ZHaxLtmSm998wQ=="
@@ -168,6 +176,7 @@
     "dependencies": [
       "jsr:@std/assert@1",
       "npm:@types/node@^26.6.6",
+      "npm:@types/puppeteer@^7.0.4",
       "npm:puppeteer@^25.16.0"
     ]
   }
