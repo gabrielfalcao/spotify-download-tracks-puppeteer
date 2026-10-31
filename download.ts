@@ -67,21 +67,12 @@ async function downloadTrack(browser: Puppeteer, url: string) {
   const searchButton = await page.$('button[type="submit"]');
   await searchButton.click();
   await page.evaluate(() => {
-    setTimeout(() => {
-      Array.from(document.querySelectorAll("div.items-center button"))
-        .filter((el) => el.textContent.includes("Convert"))
-        .pop(0)
-        .click();
-    }, 1500);
-  });
-  await closeAdPages(browser);
-  await page.evaluate(() => {
-    await new Promise((resolve, reject) => {
+    return new Promise((resolve, reject) => {
       setTimeout(() => {
         const button = Array.from(
           document.querySelectorAll("div.items-center button"),
         )
-          .filter((el) => el.textContent.includes("Download"))
+          .filter((el) => el.textContent.includes("Convert"))
           .pop(0);
         button.click();
         resolve(button);
@@ -90,15 +81,39 @@ async function downloadTrack(browser: Puppeteer, url: string) {
   });
 
   await closeAdPages(browser);
+  await page.evaluate(() => {
+    return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        const button = Array.from(
+          document.querySelectorAll("div.items-center button"),
+        )
+          .filter((el) => el.textContent.includes("Download"))
+          .pop(0);
+        button.click();
+        resolve(button);
+        setTimeout(() => page.close())
+      }, 1500);
+      });
+  });
 }
-async function closeAdPages(browser: Puppeteer) {
-  const pages = await browser.pages();
-  for (const page of pages) {
-    const currentUrl = page.url();
-    if (!currentUrl.includes("spotsaver.net")) {
-      await page.close();
+
+async function closeAdPages(browser: Puppeteer): number {
+  let closed = (async () => {
+    let closed = 0;
+    let pages = await browser.pages();
+    for (const page of pages) {
+      const currentUrl = page.url();
+      if (!currentUrl.includes("spotsaver.net")) {
+        await page.close();
+        closed += 1;
+      }
     }
+    return closed;
+  })();
+  while (closed > 0) {
+    await closeAdPagesOnce(browser);
   }
+  return closed;
 }
 async function initialize(): Puppeteer {
   const response = await fetch("http://localhost:9333/json/version");
@@ -111,6 +126,8 @@ async function initialize(): Puppeteer {
 }
 async function run() {
   const browser = await initialize();
-  await downloadTrack(browser, URLS[0]);
+  for (const url of URLS) {
+    await downloadTrack(browser, url);
+  }
 }
 run();
