@@ -1,8 +1,8 @@
 import type { Puppeteer } from "puppeteer";
 import puppeteer from "puppeteer";
-import fs = from 'fs:promises';
-import { readdir } from 'node:fs/promises';
-import { join } from 'node:path';
+import fs from "fs";
+import { readdir } from "node:fs/promises";
+import { join } from "node:path";
 
 async function downloadTrack(browser: Puppeteer, url: string) {
   const page = await browser.newPage();
@@ -41,9 +41,14 @@ async function downloadTrack(browser: Puppeteer, url: string) {
           .pop(0);
         button.click();
         resolve(button);
-        setTimeout(() => page.close())
+        setTimeout(() => page.close(), 1500);
+        setTimeout(() => {
+          for (const page of browser.pages()) {
+            page.close();
+          }
+        }, 2500);
       }, 1500);
-      });
+    });
   });
 }
 
@@ -77,22 +82,22 @@ async function initialize(): Puppeteer {
 async function run() {
   const browser = await initialize();
 
-  const urls = await fs.readFile('urls')
+  const urls = await fs.readFileSync("urls");
   for (const url of listUrlFiles()) {
     await downloadTrack(browser, url);
   }
 }
 async function listUrlFiles(): string[] {
-  const urls = []
-    const files = await readdir(".");
-    for (const file of files) {
-      if (/urls[.][^.]+[.]txt$/.exec(file)) {
-        const currentUrls = (await fs.readFile(file)).splitlines();
-        for (const cur of currentUrls) {
-          urls.push(cur);
-        }
+  const urls = [];
+  const files = await readdir(".");
+  for (const file of files) {
+    if (/urls[.][^.]+[.]txt$/.exec(file)) {
+      const currentUrls = (await fs.readFile(file)).splitlines();
+      for (const cur of currentUrls) {
+        urls.push(cur);
       }
     }
-  return urls
+  }
+  return urls;
 }
 run();
