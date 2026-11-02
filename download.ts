@@ -30,7 +30,12 @@ async function downloadTrack(browser: Puppeteer, url: string) {
   });
 
   await closeAdPages(browser);
-  await page.evaluate(() => {
+  while (!await convertOrDownload(page)) {
+    await closeAdPages(browser);
+  }
+}
+async function convertOrDownload(page) {
+    await page.evaluate(() => {
     return new Promise((resolve, reject) => {
       setTimeout(async () => {
         if (
@@ -47,24 +52,21 @@ async function downloadTrack(browser: Puppeteer, url: string) {
                   (el) =>
                     el.textContent.includes("Download") ||
                     el.textContent.includes("Convert"),
-                )
+                );
+              if (buttons.length === 0) {
+                resolve(false)
+              } else {
+              buttons
                 .forEach((el) => el.click());
+                resolve(true)
+                }
             });
           }, 5000);
         }
-
-        resolve(buttons);
-        // setTimeout(() => page.close(), 1500);
-        // setTimeout(() => {
-        //   for (const page of browser.pages()) {
-        //     page.close();
-        //   }
-        // }, 2500);
       }, 1500);
     });
-  });
+    });
 }
-
 async function closeAdPages(browser: Puppeteer): number {
   let closed = (async () => {
     let closed = 0;
@@ -84,14 +86,20 @@ async function closeAdPages(browser: Puppeteer): number {
   return closed;
 }
 async function initialize(): Puppeteer {
-  const response = await fetch("http://localhost:9333/json/version");
+  try {
+    const response = await fetch("http://localhost:9333/json/version");
   const data = await response.json();
   const browserWSEndpoint = data.webSocketDebuggerUrl;
   const browser = await puppeteer.connect({
     browserWSEndpoint: browserWSEndpoint,
     protocolTimeout: 180000,
   });
-  return browser;
+    return browser;
+
+  } catch(e) {
+    console.error(`it appears that chromium is not open or not listening on port 9333: ${e}`)
+    return process.exit(1)
+ }
 }
 async function run() {
   for (const url of await listUrlFiles()) {
@@ -104,6 +112,12 @@ async function run() {
 }
 async function listUrlFiles(): string[] {
   const urls = [
+    // "https://open.spotify.com/playlist/1HkvGddWj6VdHQpqPownp2?si=63b8c49d670e4c90",
+    // "https://open.spotify.com/playlist/2LdeFxjOP04jItRBSnX3Va?si=d158f47b5c374c88",
+    // "https://open.spotify.com/playlist/3ekE9yMBYjJy9CSbE6tMDP?si=q7RB1L_xQwCC3aP6xjqXfA",
+    // "https://open.spotify.com/playlist/5UwqHFbyup3VCukNu5mXPN?si=b9db79b7152f475e",
+    // "https://open.spotify.com/track/61mWefnWQOLf90gepjOCb3?si=48ccecfaaab74e2e",
+    // "https://open.spotify.com/playlist/5F9h5N5TrBoZhFvLYcQo63", // CK Happy Disco
     // "https://open.spotify.com/artist/6A43Djmhbe9100UwnI7epV", // cake
     // "https://open.spotify.com/playlist/2iZicEqw8eYHMxsq2HVVB7", // Disco is fundamental
     // "https://open.spotify.com/playlist/3Eni8dggzzd0MWUGXKMVHl", // Guy Gerber
@@ -149,7 +163,7 @@ async function listUrlFiles(): string[] {
     // "https://open.spotify.com/playlist/3qpkpLGxc9eekjuwudX4gG",  // an evidence of time
     // "https://open.spotify.com/artist/6Th7POyVfZgiHJQ64ddV5Y", // Rodriguez Jr.
     // "https://open.spotify.com/playlist/37i9dQZF1DZ06evO44CBIO", // This is Rodriguez Jr
-    "https://open.spotify.com/playlist/4QttXMFmKsk017fTmnB9tt?si=016a1c88690c4a39",  // Intense crying epyphany
+    // "https://open.spotify.com/playlist/4QttXMFmKsk017fTmnB9tt?si=016a1c88690c4a39",  // Intense crying epyphany
   ];
   // const files = await readdir(".");
   // for (const file of files) {
