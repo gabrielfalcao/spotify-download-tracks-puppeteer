@@ -70,7 +70,7 @@ async function closeAdPages(browser: Puppeteer): number {
     let closed = 0;
     let pages = await browser.pages();
     for (const page of pages) {
-      const currentUrl = URL.parse(page.url());
+      const currentUrl = URL.parse(await page.url());
       if (!currentUrl.hostname.includes("spotsaver.net")) {
         await page.close();
         closed += 1;
@@ -79,7 +79,7 @@ async function closeAdPages(browser: Puppeteer): number {
     return closed;
   })();
   while (closed > 0) {
-    await closeAdPagesOnce(browser);
+    await closeAdPages(browser);
   }
   return closed;
 }
@@ -96,9 +96,9 @@ async function initialize(): Puppeteer {
 async function run() {
   for (const url of await listUrlFiles()) {
     const browser = await initialize();
-    await closeAdPagesOnce(browser);
+    await closeAdPages(browser);
     await downloadTrack(browser, url);
-    await closeAdPagesOnce(browser);
+    await closeAdPages(browser);
     browser.close();
   }
 }
@@ -148,7 +148,8 @@ async function listUrlFiles(): string[] {
     // "https://open.spotify.com/playlist/2tjZUUUYBvVedxCtKQGqFE?si=23988d039b2c4f65", // bergauf
     // "https://open.spotify.com/playlist/3qpkpLGxc9eekjuwudX4gG",  // an evidence of time
     // "https://open.spotify.com/artist/6Th7POyVfZgiHJQ64ddV5Y", // Rodriguez Jr.
-    "https://open.spotify.com/playlist/37i9dQZF1DZ06evO44CBIO", // This is Rodriguez Jr
+    // "https://open.spotify.com/playlist/37i9dQZF1DZ06evO44CBIO", // This is Rodriguez Jr
+    "https://open.spotify.com/playlist/4QttXMFmKsk017fTmnB9tt?si=016a1c88690c4a39",  // Intense crying epyphany
   ];
   // const files = await readdir(".");
   // for (const file of files) {
