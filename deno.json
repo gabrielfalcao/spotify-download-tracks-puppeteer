@@ -3,7 +3,7 @@
     "pl": "deno run --allow-all playlists.ts",
     "dl": "deno run --allow-all download.ts",
     "playlists": "deno run --allow-all playlists.ts",
-    "download": "deno run --allow-all download.ts",
+    "download": "deno run --allow-all download.ts"
   },
   "imports": {
     "@std/assert": "jsr:@std/assert@1",
