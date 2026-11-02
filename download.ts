@@ -22,7 +22,8 @@ async function downloadTrack(browser: Puppeteer, url: string) {
         const buttons = Array.from(
           document.querySelectorAll("div.items-center button"),
         )
-                             .filter((el) => el.textContent.includes("Convert")).forEach(el => el.click())
+          .filter((el) => el.textContent.includes("Convert"))
+          .forEach((el) => el.click());
         resolve(buttons);
       }, 1500);
     });
@@ -32,20 +33,25 @@ async function downloadTrack(browser: Puppeteer, url: string) {
   await page.evaluate(() => {
     return new Promise((resolve, reject) => {
       setTimeout(async () => {
-        if (Array.from(
-          document.querySelectorAll("div.items-center button")
-        )
-                 .filter((el) => el.textContent.includes("Queued")).length > 0) {
-          setTimeout(async () =>{
+        if (
+          Array.from(
+            document.querySelectorAll("div.items-center button"),
+          ).filter((el) => el.textContent.includes("Queued")).length > 0
+        ) {
+          setTimeout(async () => {
             return new Promise((resolve, reject) => {
               const buttons = Array.from(
-                document.querySelectorAll("div.items-center button")
+                document.querySelectorAll("div.items-center button"),
               )
-                                   .filter((el) => el.textContent.includes("Download")|| el.textContent.includes("Convert")).forEach(el => el.click())
-
-            })
+                .filter(
+                  (el) =>
+                    el.textContent.includes("Download") ||
+                    el.textContent.includes("Convert"),
+                )
+                .forEach((el) => el.click());
+            });
           }, 5000);
-          }
+        }
 
         resolve(buttons);
         // setTimeout(() => page.close(), 1500);
@@ -64,8 +70,8 @@ async function closeAdPages(browser: Puppeteer): number {
     let closed = 0;
     let pages = await browser.pages();
     for (const page of pages) {
-      const currentUrl = page.url();
-      if (!currentUrl.includes("spotsaver.net")) {
+      const currentUrl = URL.parse(page.url());
+      if (!currentUrl.hostname.includes("spotsaver.net")) {
         await page.close();
         closed += 1;
       }
@@ -83,18 +89,18 @@ async function initialize(): Puppeteer {
   const browserWSEndpoint = data.webSocketDebuggerUrl;
   const browser = await puppeteer.connect({
     browserWSEndpoint: browserWSEndpoint,
-    protocolTimeout: 5000
+    protocolTimeout: 180000,
   });
   return browser;
 }
 async function run() {
-  const browser = await initialize();
-  const urls = await fs.readFileSync("urls");
   for (const url of await listUrlFiles()) {
+    const browser = await initialize();
+    await closeAdPagesOnce(browser);
     await downloadTrack(browser, url);
     await closeAdPagesOnce(browser);
+    browser.close();
   }
-  browser.close()
 }
 async function listUrlFiles(): string[] {
   const urls = [
@@ -104,8 +110,8 @@ async function listUrlFiles(): string[] {
     // "https://open.spotify.com/album/447aAsTmmXFZ0tyoB7sK3z", // Start breaking my heart
     // "https://open.spotify.com/track/6h9fjGkaBU03vxPgIJJAvf",
 
-    "https://open.spotify.com/album/3u5F50SdWg1F75ugsG11CE", // Hydra
-
+    // "https://open.spotify.com/album/3u5F50SdWg1F75ugsG11CE", // Hydra
+    //
     // "https://open.spotify.com/track/3DHpzBZ4sGfPZfefkY88NO",
     // "https://open.spotify.com/track/6jEzD3FPcA95CsuIJtKFS0",
     // "https://open.spotify.com/track/1Gu8YosrIxq31SoQA1Nwfh",
@@ -139,7 +145,10 @@ async function listUrlFiles(): string[] {
     // "https://open.spotify.com/playlist/5SeRUjxWtWQOrETirbwbA9?si=23855ec23e2d4bcf",
     // "https://open.spotify.com/playlist/7GYGc4JSiV44Y53VvE2Dpa?si=0639e062155f4c24",
     // "https://open.spotify.com/playlist/0GYSxHR7PcsKfTBbLI0Wr8?si=6a2f10f87a7848c3",
-    //
+    // "https://open.spotify.com/playlist/2tjZUUUYBvVedxCtKQGqFE?si=23988d039b2c4f65", // bergauf
+    // "https://open.spotify.com/playlist/3qpkpLGxc9eekjuwudX4gG",  // an evidence of time
+    // "https://open.spotify.com/artist/6Th7POyVfZgiHJQ64ddV5Y", // Rodriguez Jr.
+    "https://open.spotify.com/playlist/37i9dQZF1DZ06evO44CBIO", // This is Rodriguez Jr
   ];
   // const files = await readdir(".");
   // for (const file of files) {
