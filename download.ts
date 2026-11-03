@@ -10,6 +10,7 @@ async function downloadTrack(browser: Puppeteer, url: string) {
   const page = await browser.newPage();
   // await page.resize({ contentWidth: 2880, contentHeight: 1800 });
   //
+  await page.openDevTools();
   await page.goto("https://spotsaver.net", {
     timeout: 360000,
     waitUntil: "networkidle2",
@@ -21,7 +22,6 @@ async function downloadTrack(browser: Puppeteer, url: string) {
   await page.waitForNavigation();
 
   console.log(`clicked to submit!`, searchButton);
-  await page.openDevTools();
   await page.waitForSelector("div.items-center button");
 
   await page.evaluate(async () => {
