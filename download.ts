@@ -3,115 +3,183 @@ import puppeteer from "puppeteer";
 import fs from "fs";
 import { readdir } from "node:fs/promises";
 import { join } from "node:path";
+import readline from "node:readline";
 
 async function downloadTrack(browser: Puppeteer, url: string) {
+  console.log(`downloadTrack`);
   const page = await browser.newPage();
-
+  // await page.resize({ contentWidth: 2880, contentHeight: 1800 });
+  //
   await page.goto("https://spotsaver.net", {
-    timeout: 60000,
+    timeout: 360000,
     waitUntil: "networkidle2",
   });
 
   await page.locator('input[type="text"]').fill(url);
-
   const searchButton = await page.$('button[type="submit"]');
   await searchButton.click();
-  await page.evaluate(() => {
-    return new Promise((resolve, reject) => {
+  console.log(`clicked to submit!`, searchButton);
+
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+  rl.question(`Press enter when the list of songs appear`, (name) => {
+    console.log(`Hi ${name}!`);
+    rl.close();
+  });
+
+  await page.evaluate(async () => {
+    Array.from(document.querySelectorAll("svg")).forEach((el) => el.remove());
+  });
+
+  await new Promise(async (resolve, reject) => {
+    await page.evaluate(() => {
       setTimeout(async () => {
         const buttons = Array.from(
           document.querySelectorAll("div.items-center button"),
-        )
-          .filter((el) => el.textContent.includes("Convert"))
-          .forEach((el) => el.click());
+        ).filter((el) => /.*(Convert|Download).*/.exec(`${el.textContent}`));
         resolve(buttons);
-      }, 1500);
+      }, 5000);
     });
-  });
 
-  await closeAdPages(browser);
-  while (!await convertOrDownload(page)) {
-    await closeAdPages(browser);
-  }
+    await convertOrDownload2(browser, page);
+  });
 }
-async function convertOrDownload(page) {
-    await page.evaluate(() => {
-    return new Promise((resolve, reject) => {
+async function convertOrDownload2(browser, page) {
+  console.log(`convertOrDownload2`);
+  // page.focus("div.items-center");
+  let buttons = [];
+  while (buttons && buttons.length === 0) {
+    console.log("page.reload();");
+    // page.reload();
+    buttons = await new Promise((resolve, reject) => {
       setTimeout(async () => {
-        if (
-          Array.from(
-            document.querySelectorAll("div.items-center button"),
-          ).filter((el) => el.textContent.includes("Queued")).length > 0
-        ) {
-          setTimeout(async () => {
-            return new Promise((resolve, reject) => {
-              const buttons = Array.from(
-                document.querySelectorAll("div.items-center button"),
-              )
-                .filter(
-                  (el) =>
-                    el.textContent.includes("Download") ||
-                    el.textContent.includes("Convert"),
-                );
-              if (buttons.length === 0) {
-                resolve(false)
-              } else {
-              buttons
-                .forEach((el) => el.click());
-                resolve(true)
-                }
-            });
-          }, 5000);
+        let buttons = Array.from((await page.$$("button span")) ?? []);
+        for (const attempt in [...new Array(30)]) {
+          buttons = Array.from((await page.$$("button span")) ?? [])
+            .filter((el) =>
+              /.*(Convert|Download|Queue).*/.exec(`${el.textContent}`),
+            )
+            .map((el) => el.parent);
+          console.log(buttons);
+          if (buttons.length > 0) {
+            resolve(buttons);
+          }
         }
-      }, 1500);
+        resolve(null);
+      }, 500);
     });
-    });
+  }
+
+  console.log(buttons);
 }
-async function closeAdPages(browser: Puppeteer): number {
-  let closed = (async () => {
+
+async function convertOrDownload(browser, page) {
+  console.log(`convertOrDownload`);
+  const worked = await page.evaluate(async () => {
+    setTimeout(async () => {
+      if (
+        Array.from(document.querySelectorAll("div.items-center button")).filter(
+          (el) => el.textContent.includes("Queued"),
+        ).length > 0
+      ) {
+        setTimeout(async () => {
+          const buttons = Array.from(
+            document.querySelectorAll("div.items-center button"),
+          ).filter(
+            (el) =>
+              el.textContent.includes("Download") ||
+              el.textContent.includes("Convert"),
+          );
+          for (const attempt of [...new Array(30)]) {
+            if (buttons.length === 0) {
+              if (attempt >= 29) {
+                resolve(false);
+              }
+            } else {
+              buttons.forEach((el) => el.click());
+              resolve(true);
+            }
+          }
+        }, 5000);
+      }
+    });
+    if (!worked) {
+      await convertOrDownload(browser, page);
+    } else {
+      await closeAdPages(browser, page);
+    }
+  });
+}
+async function closeAdPages(browser: Puppeteer, page): number {
+  console.log(`closeAdPages`);
+
+  const doClose = async () => {
     let closed = 0;
     let pages = await browser.pages();
-    for (const page of pages) {
-      const currentUrl = URL.parse(await page.url());
-      if (!currentUrl.hostname.includes("spotsaver.net")) {
-        await page.close();
+    if (pages.length <= 1) {
+      return closed;
+    }
+    console.log(`closeAdPages: pages => ${pages}`, pages);
+    for (const openPage of pages) {
+      if (openPage != page) {
+        openPage.close();
         closed += 1;
       }
+      // const currentUrl = URL.parse(await page.url());
+      // console.log(`closeAdPages: currentUrl => ${currentUrl}`, currentUrl)
+      // console.log(`${currentUrl}`, currentUrl);
+      // if (!currentUrl.hostname.includes("spotsaver.net")) {
+      //   console.log(`closing page ${currentUrl}`)
+      //   await page.close();
     }
     return closed;
-  })();
+  };
+  let closed = await doClose();
   while (closed > 0) {
-    await closeAdPages(browser);
+    await closeAdPages(browser, page);
   }
   return closed;
 }
 async function initialize(): Puppeteer {
+  console.log(`initialize`);
   try {
     const response = await fetch("http://localhost:9333/json/version");
-  const data = await response.json();
-  const browserWSEndpoint = data.webSocketDebuggerUrl;
-  const browser = await puppeteer.connect({
-    browserWSEndpoint: browserWSEndpoint,
-    protocolTimeout: 180000,
-  });
+    const data = await response.json();
+    const browserWSEndpoint = data.webSocketDebuggerUrl;
+    const browser = await puppeteer.connect({
+      browserWSEndpoint: browserWSEndpoint,
+      protocolTimeout: 360000,
+      headless: false,
+      defaultViewport: null,
+    });
     return browser;
-
-  } catch(e) {
-    console.error(`it appears that chromium is not open or not listening on port 9333: ${e}`)
-    return process.exit(1)
- }
-}
-async function run() {
-  for (const url of await listUrlFiles()) {
-    const browser = await initialize();
-    await closeAdPages(browser);
-    await downloadTrack(browser, url);
-    await closeAdPages(browser);
-    browser.close();
+  } catch (e) {
+    console.error(
+      `it appears that chromium is not open or not listening on port 9333: ${e}`,
+    );
+    return process.exit(1);
   }
 }
+async function run() {
+  console.log(`initialize`);
+  const browser = await initialize();
+  for (const url of await listUrlFiles()) {
+    await downloadTrack(browser, url);
+  }
+  // browser.close();
+}
 async function listUrlFiles(): string[] {
+  console.log(`listUrlFiles`);
   const urls = [
+    "https://open.spotify.com/track/0YyZBGbZYAuEFu473MiyjQ?si=41d6a620f79f4c68",
+
+    // "https://open.spotify.com/album/2jW16dwv1hTu1K90W5upwO?si=7o8vYZ05Q-GC_-_erVbznA", // Mombodó
+    //
+    // "https://open.spotify.com/playlist/2K3rOUcaLTXrEW0YQQN4pp",//  The talking heads, Velvet Underground, Lou Reed
+    //
+
     // "https://open.spotify.com/playlist/1HkvGddWj6VdHQpqPownp2?si=63b8c49d670e4c90",
     // "https://open.spotify.com/playlist/2LdeFxjOP04jItRBSnX3Va?si=d158f47b5c374c88",
     // "https://open.spotify.com/playlist/3ekE9yMBYjJy9CSbE6tMDP?si=q7RB1L_xQwCC3aP6xjqXfA",
@@ -124,6 +192,8 @@ async function listUrlFiles(): string[] {
     // "https://open.spotify.com/album/447aAsTmmXFZ0tyoB7sK3z", // Start breaking my heart
     // "https://open.spotify.com/track/6h9fjGkaBU03vxPgIJJAvf",
 
+    // "https://open.spotify.com/album/3HBjRlao4zDeHTRr3IxctS?si=VHiAjKvDSjGX29wyj2qY_w",
+    //
     // "https://open.spotify.com/album/3u5F50SdWg1F75ugsG11CE", // Hydra
     //
     // "https://open.spotify.com/track/3DHpzBZ4sGfPZfefkY88NO",
@@ -174,6 +244,12 @@ async function listUrlFiles(): string[] {
   //     }
   //   }
   // }
+  console.log(urls);
   return urls;
 }
-run();
+console.log("running");
+try {
+  run();
+} catch (e) {
+  console.error(`failed to run`);
+}
