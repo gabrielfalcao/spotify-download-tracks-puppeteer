@@ -5,6 +5,9 @@
     "jsr:@std/internal@^1.0.12": "1.0.14",
     "npm:@types/node@^26.6.6": "26.6.6",
     "npm:@types/puppeteer@^7.0.4": "7.0.4",
+    "npm:lilconfig@^3.1.4": "3.1.4",
+    "npm:prettier@^3.9.10": "3.9.10",
+    "npm:puppeteer-core@^25.16.0": "25.16.0",
     "npm:puppeteer@^25.16.0": "25.16.0"
   },
   "jsr": {
@@ -85,6 +88,10 @@
     },
     "modern-tar@0.8.6": {
       "integrity": "sha512-LYSks0tNVqbtez/9OB0YFP6qLRSqkdAxJWOQpVaR67lNTbj2zNLyYpowkRMia5lXLCZKzxwoxkxH2MbbBR2aEg=="
+    },
+    "prettier@3.9.10": {
+      "integrity": "sha512-skGHTH1Yb9QvaTC4hWnRTzEYtCpApF0UMBPz+t/0ZPzP8ihefo/btKd+QA7pUE0fEwA1SbS/NmhyEcstdXOIdA==",
+      "bin": true
     },
     "puppeteer-core@25.16.0": {
       "integrity": "sha512-VA5Pf54N8shfopNkZZXCdiiwfnnY8ZJYAMqFQRhlH5mGUhfwf53Ar770GPtdpTDLUqvQeYpIBtC9/G2Jij2IJw==",
@@ -178,6 +185,13 @@
       "npm:@types/node@^26.6.6",
       "npm:@types/puppeteer@^7.0.4",
       "npm:puppeteer@^25.16.0"
-    ]
+    ],
+    "packageJson": {
+      "dependencies": [
+        "npm:lilconfig@^3.1.4",
+        "npm:prettier@^3.9.10",
+        "npm:puppeteer-core@^25.16.0"
+      ]
+    }
   }
 }
