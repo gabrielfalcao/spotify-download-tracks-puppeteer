@@ -18,16 +18,11 @@ async function downloadTrack(browser: Puppeteer, url: string) {
   await page.locator('input[type="text"]').fill(url);
   const searchButton = await page.$('button[type="submit"]');
   await searchButton.click();
+  await page.waitForNavigation();
+
   console.log(`clicked to submit!`, searchButton);
 
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
-  });
-  rl.question(`Press enter when the list of songs appear`, (name) => {
-    console.log(`Hi ${name}!`);
-    rl.close();
-  });
+  await page.waitForSelector("div.items-center button");
 
   await page.evaluate(async () => {
     Array.from(document.querySelectorAll("svg")).forEach((el) => el.remove());
@@ -39,8 +34,10 @@ async function downloadTrack(browser: Puppeteer, url: string) {
         const buttons = Array.from(
           document.querySelectorAll("div.items-center button"),
         ).filter((el) => /.*(Convert|Download).*/.exec(`${el.textContent}`));
-        resolve(buttons);
-      }, 5000);
+        if (buttons.length > 0) {
+          resolve(buttons);
+        }
+      }, 500);
     });
 
     await convertOrDownload2(browser, page);
@@ -50,25 +47,24 @@ async function convertOrDownload2(browser, page) {
   console.log(`convertOrDownload2`);
   // page.focus("div.items-center");
   let buttons = [];
+
   while (buttons && buttons.length === 0) {
-    console.log("page.reload();");
-    // page.reload();
     buttons = await new Promise((resolve, reject) => {
       setTimeout(async () => {
-        let buttons = Array.from((await page.$$("button span")) ?? []);
         for (const attempt in [...new Array(30)]) {
-          buttons = Array.from((await page.$$("button span")) ?? [])
-            .filter((el) =>
-              /.*(Convert|Download|Queue).*/.exec(`${el.textContent}`),
-            )
-            .map((el) => el.parent);
-          console.log(buttons);
-          if (buttons.length > 0) {
-            resolve(buttons);
-          }
+          await page.$$eval("button span", (btns) => {
+            const buttons = btns.filter((el) => {
+              console.log(`Searching for Convert/Download buttons`);
+              /.*(Convert|Download)\s*$/.exec(`${el.textContent}`);
+            });
+            if (buttons.length > 0) {
+              resolve(buttons);
+            } else {
+              resolve(null);
+            }
+          });
         }
-        resolve(null);
-      }, 500);
+      });
     });
   }
 
