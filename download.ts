@@ -21,7 +21,7 @@ async function downloadTrack(browser: Puppeteer, url: string) {
   await page.waitForNavigation();
 
   console.log(`clicked to submit!`, searchButton);
-
+  await page.openDevTools();
   await page.waitForSelector("div.items-center button");
 
   await page.evaluate(async () => {
@@ -52,17 +52,20 @@ async function convertOrDownload2(browser, page) {
     buttons = await new Promise((resolve, reject) => {
       setTimeout(async () => {
         for (const attempt in [...new Array(30)]) {
-          await page.$$eval("button span", (btns) => {
-            const buttons = btns.filter((el) => {
-              console.log(`Searching for Convert/Download buttons`);
-              /.*(Convert|Download)\s*$/.exec(`${el.textContent}`);
+          const buttons = await page.$$eval("button span", (btns) => {
+            return new Promise((resolve, reject) => {
+              const buttons = btns.filter((el) => {
+                console.log(`Searching for Convert/Download buttons`);
+                /.*(Convert|Download)\s*$/.exec(`${el.textContent}`);
+              });
+              if (buttons.length > 0) {
+                resolve(buttons);
+              } else {
+                resolve(null);
+              }
             });
-            if (buttons.length > 0) {
-              resolve(buttons);
-            } else {
-              resolve(null);
-            }
-          });
+          })
+          resolve(buttons)
         }
       });
     });
