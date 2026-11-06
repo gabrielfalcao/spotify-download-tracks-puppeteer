@@ -172,12 +172,14 @@ async function run() {
 async function listUrlFiles(): string[] {
   console.log(`listUrlFiles`);
   const urls = [
-    "https://open.spotify.com/track/0YyZBGbZYAuEFu473MiyjQ?si=41d6a620f79f4c68",
-
+    // "https://open.spotify.com/track/0YyZBGbZYAuEFu473MiyjQ?si=41d6a620f79f4c68",
+    //
     // "https://open.spotify.com/album/2jW16dwv1hTu1K90W5upwO?si=7o8vYZ05Q-GC_-_erVbznA", // Mombodó
     //
     // "https://open.spotify.com/playlist/2K3rOUcaLTXrEW0YQQN4pp",//  The talking heads, Velvet Underground, Lou Reed
     //
+
+    "https://open.spotify.com/playlist/0ZT91y1VUYq3kh5wqtASm1?si=6ba5647ad12f48a4&pt=43ceed7b060478c37f9b2193cb967e02",
 
     // "https://open.spotify.com/playlist/1HkvGddWj6VdHQpqPownp2?si=63b8c49d670e4c90",
     // "https://open.spotify.com/playlist/2LdeFxjOP04jItRBSnX3Va?si=d158f47b5c374c88",
